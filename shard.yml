@@ -4,20 +4,25 @@ version: 0.2.0
 authors:
   - Xavi Ablaza <xavi@makisu.co>
 
-crystal: 0.36.1
+crystal: ">= 1.0.0"
 
 license: MIT
 
 dependencies:
+  carbon:
+    github: luckyframework/carbon
+    version: ~> 0.2.0
   habitat:
     github: luckyframework/habitat
-    version: ~> 0.4.4
+    version: ~> 0.4.7
 
 development_dependencies:
+  spec_mirror:
+    github: tilitribe/spec_mirror.cr
+    branch: master
   dotenv:
     github: gdotdesign/cr-dotenv
-    version: 0.7.0
-
+    version: ~> 1.0.0
   ameba:
     github: veelenga/ameba
-    version: 0.13.1
+    version: ~> 0.14.3
