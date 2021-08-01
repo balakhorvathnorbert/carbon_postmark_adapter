@@ -1,3 +1,3 @@
-module CarbonPostmarkAdapter
-  VERSION = "0.1.0"
+module Carbon::PostmarkAdapter
+  VERSION = "0.2.0"
 end
