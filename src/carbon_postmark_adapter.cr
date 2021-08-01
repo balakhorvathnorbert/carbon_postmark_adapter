@@ -1,5 +1,6 @@
 require "http"
 require "json"
+require "carbon"
 
 class Carbon::PostmarkAdapter < Carbon::Adapter
   private getter server_token : String
@@ -22,18 +23,14 @@ class Carbon::PostmarkAdapter < Carbon::Adapter
 
     def deliver
       client.post(build_mail_send_path, body: params.to_json).tap do |response|
-        unless response.success?
-          raise JSON.parse(response.body).inspect
-        end
+        raise JSON.parse(response.body).inspect unless response.success?
       end
     end
 
     def build_mail_send_path
-      if send_template?
-        TEMPLATE_SEND_PATH
-      else
-        MAIL_SEND_PATH
-      end
+      return TEMPLATE_SEND_PATH if send_template?
+
+      MAIL_SEND_PATH
     end
 
     def send_template?
@@ -42,11 +39,9 @@ class Carbon::PostmarkAdapter < Carbon::Adapter
 
     # Generates params to send to Postmark
     def params
-      if send_template?
-        build_template_params
-      else
-        build_mail_params
-      end
+      return build_template_params if send_template?
+
+      build_mail_params
     end
 
     def build_template_params
@@ -64,7 +59,7 @@ class Carbon::PostmarkAdapter < Carbon::Adapter
         "TrackOpens"    => email.headers["TrackOpens"]?,
         "TrackLinks"    => email.headers["TrackLinks"]?,
         "MessageStream" => email.headers["MessageStream"]?,
-      }.reject { |_key, value| value.blank? }
+      }.reject { |_key, value| !value.is_a?(Bool) && (value.nil? || value.empty?) }
     end
 
     # Only supports one-level for now
@@ -93,17 +88,15 @@ class Carbon::PostmarkAdapter < Carbon::Adapter
         "TrackOpens"    => email.headers["TrackOpens"]?,
         "TrackLinks"    => email.headers["TrackLinks"]?,
         "MessageStream" => email.headers["MessageStream"]?,
-      }.reject { |_key, value| value.blank? }
+      }.reject { |_key, value| value.nil? || value.empty? }
     end
 
     private def from
-      "#{email.from.name} <#{email.from.address}>"
+      email.from.to_s
     end
 
     private def to_postmark_address(addresses : Array(Carbon::Address))
-      addresses.map do |carbon_address|
-        "#{carbon_address.name} <#{carbon_address.address}>"
-      end.join(',')
+      addresses.map(&.to_s)
     end
 
     @_client : HTTP::Client?
