@@ -16,6 +16,7 @@ class Carbon::PostmarkAdapter < Carbon::Adapter
     BASE_URI           = "api.postmarkapp.com"
     MAIL_SEND_PATH     = "/email"
     TEMPLATE_SEND_PATH = "#{MAIL_SEND_PATH}/withTemplate"
+
     private getter email, server_token
 
     def initialize(@email : Carbon::Email, @server_token : String)
@@ -27,44 +28,57 @@ class Carbon::PostmarkAdapter < Carbon::Adapter
       end
     end
 
-    def build_mail_send_path
+    def params
+      (send_template? ? build_template_params : build_mail_params).reject do |_, value|
+        !value.is_a?(Bool) && (value.nil? || value.empty?)
+      end
+    end
+
+    private def build_mail_send_path
       return TEMPLATE_SEND_PATH if send_template?
 
       MAIL_SEND_PATH
     end
 
-    def send_template?
+    private def send_template?
       email.headers["TemplateAlias"]? || email.headers["TemplateId"]?
     end
 
-    # Generates params to send to Postmark
-    def params
-      return build_template_params if send_template?
-
-      build_mail_params
-    end
-
-    def build_template_params
-      {
-        "TemplateId"    => email.headers["TemplateId"]?,
-        "TemplateAlias" => email.headers["TemplateAlias"]?,
-        "TemplateModel" => build_template_model,
+    private def build_template_params
+      build_base_mail_params.merge({
         "InlineCss"     => email.headers["InlineCss"]? || true,
-        "From"          => from,
-        "To"            => to_postmark_address(email.to),
-        "Cc"            => to_postmark_address(email.cc),
-        "Bcc"           => to_postmark_address(email.bcc),
-        "Tag"           => email.headers["Tag"]?,
-        "ReplyTo"       => email.headers["ReplyTo"]?,
-        "TrackOpens"    => email.headers["TrackOpens"]?,
-        "TrackLinks"    => email.headers["TrackLinks"]?,
-        "MessageStream" => email.headers["MessageStream"]?,
-      }.reject { |_key, value| !value.is_a?(Bool) && (value.nil? || value.empty?) }
+        "TemplateAlias" => email.headers["TemplateAlias"]?,
+        "TemplateId"    => email.headers["TemplateId"]?,
+        "TemplateModel" => build_template_model,
+      })
     end
 
-    # Only supports one-level for now
-    def build_template_model
+    private def build_mail_params
+      build_base_mail_params.merge({
+        "HtmlBody" => email.html_body.to_s,
+        "Subject"  => email.subject,
+        "TextBody" => email.text_body.to_s,
+      })
+    end
+
+    private def build_base_mail_params
+      {
+        "Bcc"           => to_postmark_address(email.bcc),
+        "Cc"            => to_postmark_address(email.cc),
+        "From"          => from,
+        "MessageStream" => email.headers["MessageStream"]?,
+        "ReplyTo"       => email.headers["ReplyTo"]?,
+        "Tag"           => email.headers["Tag"]?,
+        "To"            => to_postmark_address(email.to),
+        "TrackLinks"    => email.headers["TrackLinks"]?,
+        "TrackOpens"    => email.headers["TrackOpens"]?,
+      }
+    end
+
+    private def build_template_model
+      # only supports one-level for now
       template_model = {} of String => String
+
       email.headers.each do |key, value|
         if key.starts_with?("TemplateModel:")
           template_model[key.split(':')[1]] = value
@@ -72,23 +86,6 @@ class Carbon::PostmarkAdapter < Carbon::Adapter
       end
 
       template_model
-    end
-
-    def build_mail_params
-      {
-        "From"          => from,
-        "To"            => to_postmark_address(email.to),
-        "Cc"            => to_postmark_address(email.cc),
-        "Bcc"           => to_postmark_address(email.bcc),
-        "Subject"       => email.subject,
-        "HtmlBody"      => email.html_body.to_s,
-        "TextBody"      => email.text_body.to_s,
-        "ReplyTo"       => email.headers["ReplyTo"]?,
-        "Tag"           => email.headers["Tag"]?,
-        "TrackOpens"    => email.headers["TrackOpens"]?,
-        "TrackLinks"    => email.headers["TrackLinks"]?,
-        "MessageStream" => email.headers["MessageStream"]?,
-      }.reject { |_key, value| value.nil? || value.empty? }
     end
 
     private def from

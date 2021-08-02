@@ -29,13 +29,17 @@ describe Carbon::PostmarkAdapter do
     end
 
     it "sets the text body" do
-      params_for(text_body: "text")["TextBody"]
-        .should eq "text"
+      params_for(text_body: "text")["TextBody"].should eq "text"
     end
 
     it "sets the html body" do
-      params_for(html_body: "html")["HtmlBody"]
-        .should eq "html"
+      params_for(html_body: "html")["HtmlBody"].should eq "html"
+    end
+
+    it "strips out empty values" do
+      expect_raises(KeyError, %(Missing hash key: "HtmlBody")) do
+        params_for(html_body: nil)["HtmlBody"]
+      end
     end
   end
 end
