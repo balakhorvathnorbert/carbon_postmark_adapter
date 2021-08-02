@@ -41,6 +41,13 @@ describe Carbon::PostmarkAdapter do
         params_for(html_body: nil)["HtmlBody"]
       end
     end
+
+    it "adds template model params" do
+      headers = {"TemplateId" => "1234", "TemplateModel:someKey" => "someValue"}
+
+      params_for(headers: headers)["TemplateModel"]
+        .should eq({"someKey" => "someValue"})
+    end
   end
 end
 
