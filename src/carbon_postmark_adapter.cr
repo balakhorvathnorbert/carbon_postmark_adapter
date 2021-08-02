@@ -77,15 +77,11 @@ class Carbon::PostmarkAdapter < Carbon::Adapter
 
     private def build_template_model
       # only supports one-level for now
-      template_model = {} of String => String
-
-      email.headers.each do |key, value|
-        if key.starts_with?("TemplateModel:")
-          template_model[key.split(':')[1]] = value
+      ({} of String => String).tap do |hash|
+        email.headers.each do |key, value|
+          hash[key.split(':')[1]] = value if key.starts_with?("TemplateModel:")
         end
       end
-
-      template_model
     end
 
     private def from
