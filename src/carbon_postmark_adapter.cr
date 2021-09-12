@@ -89,7 +89,7 @@ class Carbon::PostmarkAdapter < Carbon::Adapter
     end
 
     private def to_postmark_address(addresses : Array(Carbon::Address))
-      addresses.map(&.to_s)
+      addresses.map(&.address).join(',')
     end
 
     @_client : HTTP::Client?
